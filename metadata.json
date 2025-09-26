@@ -1,0 +1,5 @@
+{
+  "name": "CrossFit PR Tracker",
+  "description": "An application to track your CrossFit personal records (PRs), view famous WODs, and calculate lifting percentages. Built with React, Tailwind CSS, and Supabase.",
+  "requestFramePermissions": []
+}
