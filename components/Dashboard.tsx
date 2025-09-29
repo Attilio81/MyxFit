@@ -165,12 +165,12 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
   }, [fetchData]);
 
   const handleDeleteRecord = async (id: number) => {
-    await supabase.from('personal_records').delete().match({ id });
+    await supabase.from('personal_records').delete().match({ id, user_id: session.user.id });
     fetchData();
   };
 
   const handleDeleteWODRecord = async (id: number) => {
-    await supabase.from('wod_records').delete().match({ id });
+    await supabase.from('wod_records').delete().match({ id, user_id: session.user.id });
     fetchData();
   };
   
