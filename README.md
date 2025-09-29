@@ -44,11 +44,13 @@ Questa è un'applicazione web completa progettata per aiutare gli atleti di Cros
 3.  **Configura le Variabili d'Ambiente**:
     Per far funzionare l'applicazione, è necessario configurare alcune variabili d'ambiente nella tua piattaforma di hosting (come Vercel, Netlify, ecc.). Questo garantisce che le chiavi segrete non siano esposte nel codice.
 
+    L'applicazione è configurata per leggere le seguenti variabili. Per la massima flessibilità, accetterà sia le versioni con il prefisso `VITE_` (comune in ambienti Vite.js) sia quelle senza. **Si consiglia di utilizzare i nomi senza prefisso per coerenza con questa documentazione.**
+
     - `SUPABASE_URL`: L'URL del tuo progetto Supabase. Lo trovi nelle impostazioni API del tuo progetto.
     - `SUPABASE_ANON_KEY`: La chiave pubblica (anon key) del tuo progetto Supabase. Anche questa si trova nelle impostazioni API.
     - `API_KEY`: La tua chiave API per Google Gemini, necessaria per l'assistente AI. Puoi ottenerla da [Google AI Studio](https://aistudio.google.com/).
 
-    L'applicazione è già configurata per leggere queste variabili. Assicurati di impostarle correttamente nel pannello di controllo del tuo servizio di hosting.
+    Assicurati di impostare correttamente queste variabili nel pannello di controllo del tuo servizio di hosting.
 
 4.  **Avvia l'applicazione**:
     - Apri il file `index.html` in un browser web. Per un'esperienza di sviluppo migliore, si consiglia di utilizzare un server locale (ad es. l'estensione "Live Server" per VS Code).

@@ -43,6 +43,9 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatRef = useRef<Chat | null>(null);
   const [isAiAvailable, setIsAiAvailable] = useState(false);
+  
+  // Support both VITE_API_KEY and API_KEY
+  const geminiApiKey = process.env.VITE_API_KEY || process.env.API_KEY;
 
 
   const fetchData = useCallback(async () => {
@@ -78,7 +81,7 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
   // Initialize AI Chat
   useEffect(() => {
     // FIX: Switched from import.meta.env.VITE_GEMINI_API_KEY to process.env.API_KEY to fix TypeScript errors and adhere to coding guidelines.
-    if (!process.env.API_KEY) {
+    if (!geminiApiKey) {
       console.warn("Gemini API key not found. Chatbot will be disabled.");
       setIsAiAvailable(false);
       return;
@@ -88,7 +91,7 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
 
     const initializeChat = () => {
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
             const prData = records.map(r => ({
                 movement: r.movements?.name,
@@ -137,7 +140,7 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
         initializeChat();
     }
 
-  }, [records, wodRecords]);
+  }, [records, wodRecords, geminiApiKey]);
 
   const latestRecords = useMemo(() => {
     const recordMap = new Map<number, PersonalRecord>();
