@@ -1,8 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-// WARNING: Hardcoding credentials is a significant security risk.
-// This is for local testing ONLY. Do not commit this file to version control.
-const supabaseUrl = "";
-const supabaseAnonKey = "";
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Supabase URL and anonymous key are required. Make sure to set SUPABASE_URL and SUPABASE_ANON_KEY environment variables in your hosting provider (e.g., Vercel).");
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
