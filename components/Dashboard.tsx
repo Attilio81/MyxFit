@@ -1,22 +1,25 @@
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { supabase } from '../services/supabase';
 import { GoogleGenAI } from '@google/genai';
 import type { Chat, FunctionCall, FunctionDeclaration, GenerateContentResponse, Type } from '@google/genai';
 
-import AddMovementModal from './AddMovementModal';
-import AddWODScoreModal from './AddWODScoreModal';
 import BottomNav from './common/BottomNav';
 import LatestPRsList from './LatestPRsList';
 import PRHistoryView from './PRHistoryView';
-import Chatbot from './Chatbot';
-import CalculatorView from './views/CalculatorView';
-import AddPRView from './views/AddPRView';
-import WODsView from './views/WODsView';
 
 import { DumbbellIcon, ChatBubbleOvalLeftEllipsisIcon } from './common/Icons';
 import type { Session } from '@supabase/supabase-js';
 import type { Movement, PersonalRecord, WODRecord, ChatMessage } from '../types';
+
+// Lazy load components for code-splitting and performance optimization
+const AddMovementModal = lazy(() => import('./AddMovementModal'));
+const AddWODScoreModal = lazy(() => import('./AddWODScoreModal'));
+const Chatbot = lazy(() => import('./Chatbot'));
+const CalculatorView = lazy(() => import('./views/CalculatorView'));
+const AddPRView = lazy(() => import('./views/AddPRView'));
+const WODsView = lazy(() => import('./views/WODsView'));
+
 
 type View = 'prs' | 'calculator' | 'add' | 'wods';
 type PRPageState = 'list' | 'history';
@@ -70,14 +73,16 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatRef = useRef<Chat | null>(null);
+  const chatInitialized = useRef(false);
   const [isAiAvailable, setIsAiAvailable] = useState(false);
   
-  // FIX: Use process.env.API_KEY for the Gemini API key as per guidelines and to fix TypeScript errors.
-  const geminiApiKey = process.env.API_KEY;
+  const geminiApiKey = process.env.VITE_API_KEY;
 
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (options: { keepLoading?: boolean } = {}) => {
+    if (!options.keepLoading) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const movementsPromise = supabase.from('movements').select('*').order('name');
@@ -98,7 +103,9 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
       console.error('Error fetching data:', error.message);
       setError(`Could not fetch data: ${error.message}`);
     } finally {
-      setLoading(false);
+      if (!options.keepLoading) {
+        setLoading(false);
+      }
     }
   }, [session.user.id]);
 
@@ -106,8 +113,10 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
     fetchData();
   }, [fetchData]);
 
-  // Initialize AI Chat
+  // Initialize AI Chat ONCE
   useEffect(() => {
+    if (chatInitialized.current) return;
+
     if (!geminiApiKey) {
       console.warn("Gemini API key not found. Chatbot will be disabled.");
       setIsAiAvailable(false);
@@ -115,18 +124,23 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
     }
     
     setIsAiAvailable(true);
+    chatInitialized.current = true;
 
-    const initializeChat = () => {
+    const initializeChat = async () => {
         try {
+            // Fetch initial data for the prompt
+            const { data: recordsData } = await supabase.from('personal_records').select('*, movements(name, type)').eq('user_id', session.user.id);
+            const { data: wodRecordsData } = await supabase.from('wod_records').select('*').eq('user_id', session.user.id);
+
             const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
-            const prData = records.map(r => ({
+            const prData = (recordsData as PersonalRecord[] || []).map(r => ({
                 movement: r.movements?.name,
                 value: r.value,
                 date: r.date,
                 notes: r.notes
             }));
-            const wodData = wodRecords.map(w => ({
+            const wodData = (wodRecordsData || []).map(w => ({
                 wod: w.wod_name,
                 score: w.score,
                 date: w.date,
@@ -160,12 +174,9 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
         }
     };
     
-    // Initialize only when there's data, or if the data changes.
-    if ((records.length > 0 || wodRecords.length > 0) && isAiAvailable) {
-        initializeChat();
-    }
+    initializeChat();
 
-  }, [records, wodRecords, geminiApiKey, isAiAvailable]);
+  }, [geminiApiKey, session.user.id]);
 
   const latestRecords = useMemo(() => {
     const recordMap = new Map<number, PersonalRecord>();
@@ -253,10 +264,9 @@ Shall I proceed?`;
             
             setChatMessages(prev => {
                 const newMessages = [...prev];
-                // Replace the last message (which might have been partially streamed) with the confirmation
                 newMessages[newMessages.length - 1] = {
                     role: 'model',
-                    text: '', // No text, just the confirmation UI
+                    text: '',
                     pendingToolConfirmation: {
                         toolCall,
                         message: confirmationMessage
@@ -287,16 +297,15 @@ Shall I proceed?`;
     setChatMessages(prev => [...prev, { role: 'model', text: 'Roger that! Saving your PR...' }]);
 
     const args = toolCall.args;
-    // FIX: Cast `args.movementName` to string to resolve 'toLowerCase' on 'unknown' type error.
-    const movement = movements.find(m => m.name.toLowerCase() === (args.movementName as string)?.toLowerCase());
+    const movementNameArg = (args.movementName as string) || '';
+    const movement = movements.find(m => m.name.toLowerCase() === movementNameArg.toLowerCase());
 
     let functionResponsePayload;
 
     if (!movement) {
         setChatMessages(prev => {
             const newMessages = [...prev];
-            // FIX: Cast `args.movementName` to string to allow it to be used in the error message.
-            newMessages[newMessages.length-1].text = `I couldn't find the movement "${args.movementName as string}". You can add new movements from the 'Add PR' tab.`;
+            newMessages[newMessages.length-1].text = `I couldn't find the movement "${movementNameArg}". You can add new movements from the 'Add PR' tab.`;
             return newMessages;
         });
         setIsChatLoading(false);
@@ -313,13 +322,17 @@ Shall I proceed?`;
         if (insertError) {
              functionResponsePayload = { success: false, error: insertError.message };
         } else {
-            await fetchData();
+            await fetchData({ keepLoading: true });
             functionResponsePayload = { success: true, message: 'The PR was successfully saved.' };
         }
     }
     
+    if (!chatRef.current) {
+        setIsChatLoading(false);
+        return;
+    }
+
     try {
-        // FIX: The argument to `sendMessageStream` must be an object with a `message` property.
         const responseStream = await chatRef.current.sendMessageStream({ message: [ 
             { functionResponse: { name: toolCall.name, response: functionResponsePayload } } 
         ]});
@@ -329,7 +342,10 @@ Shall I proceed?`;
             finalResponseText += chunk.text;
             setChatMessages(prev => {
                 const newMessages = [...prev];
-                newMessages[newMessages.length - 1].text = finalResponseText;
+                const lastMessage = newMessages[newMessages.length - 1];
+                if (lastMessage.role === 'model') {
+                    lastMessage.text = finalResponseText;
+                }
                 return newMessages;
             });
         }
@@ -338,14 +354,16 @@ Shall I proceed?`;
         console.error("Error sending tool response to AI:", e);
         setChatMessages(prev => {
             const newMessages = [...prev];
-            newMessages[newMessages.length - 1].text = "I've saved your PR, but had a little trouble getting a final response from the AI.";
+            const lastMessage = newMessages[newMessages.length - 1];
+            if (lastMessage.role === 'model') {
+               lastMessage.text = "I've saved your PR, but had a little trouble getting a final response from the AI.";
+            }
             return newMessages;
         });
     } finally {
         setIsChatLoading(false);
     }
   };
-
 
   const renderContent = () => {
     switch (currentView) {
@@ -399,7 +417,9 @@ Shall I proceed?`;
 
       <main className="flex-grow overflow-y-auto p-4 pb-24">
         {error && <div className="bg-red-500/20 text-red-300 p-4 rounded-lg mb-4" onClick={() => setError(null)}>{error}</div>}
-        {renderContent()}
+        <Suspense fallback={<div className="text-center py-10">Loading...</div>}>
+          {renderContent()}
+        </Suspense>
       </main>
 
       <BottomNav currentView={currentView} setCurrentView={setCurrentView} />
@@ -414,30 +434,40 @@ Shall I proceed?`;
         </button>
       )}
       
-      <Chatbot
-        isOpen={isChatbotOpen}
-        onClose={() => setIsChatbotOpen(false)}
-        messages={chatMessages}
-        onSendMessage={handleSendMessage}
-        onToolConfirm={handleToolConfirmation}
-        isLoading={isChatLoading}
-        isAvailable={isAiAvailable}
-      />
+      <Suspense>
+        {isChatbotOpen && (
+          <Chatbot
+            isOpen={isChatbotOpen}
+            onClose={() => setIsChatbotOpen(false)}
+            messages={chatMessages}
+            onSendMessage={handleSendMessage}
+            onToolConfirm={handleToolConfirmation}
+            isLoading={isChatLoading}
+            isAvailable={isAiAvailable}
+          />
+        )}
+      </Suspense>
       
-      <AddMovementModal 
-        isOpen={isAddMovementModalOpen}
-        onClose={() => setIsAddMovementModalOpen(false)}
-        onSuccess={handleMovementAdded}
-      />
+      <Suspense>
+        {isAddMovementModalOpen && (
+          <AddMovementModal 
+            isOpen={isAddMovementModalOpen}
+            onClose={() => setIsAddMovementModalOpen(false)}
+            onSuccess={handleMovementAdded}
+          />
+        )}
+      </Suspense>
       
-      {selectedWOD && (
-          <AddWODScoreModal
-            isOpen={isAddWODScoreModalOpen}
-            onClose={() => { setIsAddWODScoreModalOpen(false); setSelectedWOD(null); }}
-            onSuccess={handleWODScoreAdded}
-            wodName={selectedWOD}
-        />
-      )}
+      <Suspense>
+        {selectedWOD && isAddWODScoreModalOpen && (
+            <AddWODScoreModal
+              isOpen={isAddWODScoreModalOpen}
+              onClose={() => { setIsAddWODScoreModalOpen(false); setSelectedWOD(null); }}
+              onSuccess={handleWODScoreAdded}
+              wodName={selectedWOD}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };
