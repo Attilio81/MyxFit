@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { GoogleGenAI } from '@google/genai';
@@ -44,8 +45,7 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
   const chatRef = useRef<Chat | null>(null);
   const [isAiAvailable, setIsAiAvailable] = useState(false);
   
-  // Support both VITE_API_KEY and API_KEY
-  const geminiApiKey = process.env.VITE_API_KEY || process.env.API_KEY;
+  const geminiApiKey = process.env.API_KEY;
 
 
   const fetchData = useCallback(async () => {
@@ -80,7 +80,7 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
 
   // Initialize AI Chat
   useEffect(() => {
-    // FIX: Switched from import.meta.env.VITE_GEMINI_API_KEY to process.env.API_KEY to fix TypeScript errors and adhere to coding guidelines.
+    // FIX: Switched from import.meta.env to process.env to fix TypeScript errors and adhere to coding guidelines.
     if (!geminiApiKey) {
       console.warn("Gemini API key not found. Chatbot will be disabled.");
       setIsAiAvailable(false);
