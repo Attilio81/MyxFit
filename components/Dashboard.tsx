@@ -1,3 +1,5 @@
+// FIX: Add triple-slash directive to provide types for Vite's `import.meta.env`.
+/// <reference types="vite/client" />
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../services/supabase';

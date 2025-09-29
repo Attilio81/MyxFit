@@ -1,5 +1,3 @@
-// FIX: Add a triple-slash directive to include Vite's client types. This makes TypeScript aware of `import.meta.env` and resolves errors when accessing environment variables.
-/// <reference types="vite/client" />
 
 export interface Movement {
   id: number;

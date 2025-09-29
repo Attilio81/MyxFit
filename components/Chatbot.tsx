@@ -11,6 +11,45 @@ interface ChatbotProps {
   isAvailable: boolean;
 }
 
+// Helper component to render markdown-formatted text from the AI
+const FormattedMessage: React.FC<{ text: string }> = ({ text }) => {
+  // A simple function to apply inline formatting
+  const formatInline = (str: string) => {
+    return str
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+      .replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italics
+  };
+
+  // Split the text into blocks (paragraphs or lists) separated by empty lines
+  const blocks = text.split(/\n\s*\n/);
+
+  return (
+    <>
+      {blocks.map((block, index) => {
+        // Check if a block is a list by checking the first line
+        const isList = block.trim().startsWith('* ') || block.trim().startsWith('- ');
+
+        if (isList) {
+          const listItems = block.split('\n').map(item => item.trim().substring(2));
+          return (
+            <ul key={index} className="list-disc list-inside space-y-1 my-2 pl-2">
+              {listItems.map((item, itemIndex) => (
+                <li key={itemIndex} dangerouslySetInnerHTML={{ __html: formatInline(item) }} />
+              ))}
+            </ul>
+          );
+        }
+
+        // Otherwise, render as a paragraph, preserving line breaks within it
+        return (
+          <p key={index} className="my-1" dangerouslySetInnerHTML={{ __html: formatInline(block.replace(/\n/g, '<br />')) }} />
+        );
+      })}
+    </>
+  );
+};
+
+
 const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, messages, onSendMessage, isLoading, isAvailable }) => {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -62,7 +101,13 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, messages, onSendMess
                     : 'bg-gray-700 text-dark-text rounded-bl-lg'
                 }`}
               >
-                <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</p>
+                {msg.role === 'user' ? (
+                   <p className="text-sm">{msg.text}</p>
+                ) : (
+                    <div className="text-sm">
+                        <FormattedMessage text={msg.text} />
+                    </div>
+                )}
               </div>
             </div>
           ))}
