@@ -66,7 +66,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, messages, onSendMess
               </div>
             </div>
           ))}
-          {isLoading && (
+          {isLoading && messages[messages.length - 1]?.role === 'user' && (
             <div className="flex justify-start">
                 <div className="max-w-xs md:max-w-md p-3 rounded-2xl bg-gray-700 text-dark-text rounded-bl-lg">
                     <div className="flex items-center space-x-2">

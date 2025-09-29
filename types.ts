@@ -35,7 +35,6 @@ export interface WODRecord {
     created_at: string;
 }
 
-// FIX: Add missing ChatMessage interface.
 export interface ChatMessage {
   role: 'user' | 'model';
   text: string;

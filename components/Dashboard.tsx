@@ -1,18 +1,21 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../services/supabase';
+import { GoogleGenAI } from '@google/genai';
+import type { Chat } from '@google/genai';
 
 import AddMovementModal from './AddMovementModal';
 import AddWODScoreModal from './AddWODScoreModal';
 import BottomNav from './common/BottomNav';
 import LatestPRsList from './LatestPRsList';
 import PRHistoryView from './PRHistoryView';
+import Chatbot from './Chatbot';
 import CalculatorView from './views/CalculatorView';
 import AddPRView from './views/AddPRView';
 import WODsView from './views/WODsView';
 
-import { DumbbellIcon } from './common/Icons';
+import { DumbbellIcon, ChatBubbleOvalLeftEllipsisIcon } from './common/Icons';
 import type { Session } from '@supabase/supabase-js';
-import type { Movement, PersonalRecord, WODRecord } from '../types';
+import type { Movement, PersonalRecord, WODRecord, ChatMessage } from '../types';
 
 type View = 'prs' | 'calculator' | 'add' | 'wods';
 type PRPageState = 'list' | 'history';
@@ -33,6 +36,14 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
   const [isAddMovementModalOpen, setIsAddMovementModalOpen] = useState(false);
   const [isAddWODScoreModalOpen, setIsAddWODScoreModalOpen] = useState(false);
   const [selectedWOD, setSelectedWOD] = useState<string | null>(null);
+
+  // Chatbot states
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const chatRef = useRef<Chat | null>(null);
+  const [isAiAvailable, setIsAiAvailable] = useState(false);
+
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -64,10 +75,73 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
     fetchData();
   }, [fetchData]);
 
+  // Initialize AI Chat
+  useEffect(() => {
+    // FIX: Switched from import.meta.env.VITE_GEMINI_API_KEY to process.env.API_KEY to fix TypeScript errors and adhere to coding guidelines.
+    if (!process.env.API_KEY) {
+      console.warn("Gemini API key not found. Chatbot will be disabled.");
+      setIsAiAvailable(false);
+      return;
+    }
+    
+    setIsAiAvailable(true);
+
+    const initializeChat = () => {
+        try {
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+            const prData = records.map(r => ({
+                movement: r.movements?.name,
+                value: r.value,
+                date: r.date,
+                notes: r.notes
+            }));
+            const wodData = wodRecords.map(w => ({
+                wod: w.wod_name,
+                score: w.score,
+                date: w.date,
+                notes: w.notes
+            }));
+    
+            const systemInstruction = `You are a helpful and encouraging CrossFit coaching assistant. The user's personal records (PRs) and workout-of-the-day (WOD) scores are provided below in JSON format. Analyze this data to answer the user's questions. Always be positive and motivational in your responses. Keep answers concise.
+    
+            User's PR Data:
+            ${JSON.stringify(prData)}
+    
+            User's WOD Score Data:
+            ${JSON.stringify(wodData)}
+            `;
+    
+            chatRef.current = ai.chats.create({
+                model: 'gemini-2.5-flash',
+                config: {
+                    systemInstruction,
+                },
+            });
+
+            setChatMessages([
+                { role: 'model', text: 'Hi! I am your AI coaching assistant. How can I help you with your performance today?' }
+            ]);
+        } catch (e) {
+            console.error("Failed to initialize AI Chat:", e);
+            setIsAiAvailable(false);
+            setChatMessages([{ role: 'model', text: 'Sorry, the AI assistant could not be initialized.' }]);
+        }
+    };
+    
+    // Initialize only when there's data, or if the data changes.
+    if ((records.length > 0 || wodRecords.length > 0) && !chatRef.current) {
+        initializeChat();
+    } else if (chatRef.current) {
+        // If data updates, re-initialize to get latest context
+        initializeChat();
+    }
+
+  }, [records, wodRecords]);
+
   const latestRecords = useMemo(() => {
     const recordMap = new Map<number, PersonalRecord>();
     records.forEach(record => {
-      // Assuming records are pre-sorted by date descending
       if (!recordMap.has(record.movement_id)) {
         recordMap.set(record.movement_id, record);
       }
@@ -108,6 +182,33 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
   const handleSelectMovement = (movementId: number) => {
     setSelectedMovementId(movementId);
     setPRPageState('history');
+  };
+
+  const handleSendMessage = async (message: string) => {
+    if (!chatRef.current || !isAiAvailable) return;
+
+    setChatMessages(prev => [...prev, { role: 'user', text: message }]);
+    setIsChatLoading(true);
+
+    try {
+      const response = await chatRef.current.sendMessageStream({ message });
+      let currentResponse = '';
+      setChatMessages(prev => [...prev, { role: 'model', text: '' }]);
+
+      for await (const chunk of response) {
+        currentResponse += chunk.text;
+        setChatMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1].text = currentResponse;
+          return newMessages;
+        });
+      }
+    } catch (e) {
+      console.error("Error sending message to AI:", e);
+      setChatMessages(prev => [...prev, { role: 'model', text: 'Sorry, I encountered an error. Please try again.' }]);
+    } finally {
+      setIsChatLoading(false);
+    }
   };
 
   const renderContent = () => {
@@ -166,6 +267,25 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
       </main>
 
       <BottomNav currentView={currentView} setCurrentView={setCurrentView} />
+
+      {isAiAvailable && (
+        <button
+            onClick={() => setIsChatbotOpen(true)}
+            className="fixed bottom-24 right-4 bg-brand-secondary hover:bg-orange-500 text-white rounded-full p-4 shadow-lg transition-transform hover:scale-110 z-30"
+            aria-label="Open AI Assistant"
+        >
+            <ChatBubbleOvalLeftEllipsisIcon className="w-8 h-8"/>
+        </button>
+      )}
+      
+      <Chatbot
+        isOpen={isChatbotOpen}
+        onClose={() => setIsChatbotOpen(false)}
+        messages={chatMessages}
+        onSendMessage={handleSendMessage}
+        isLoading={isChatLoading}
+        isAvailable={isAiAvailable}
+      />
       
       <AddMovementModal 
         isOpen={isAddMovementModalOpen}
