@@ -1,9 +1,9 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// FIX: Switched from import.meta.env to process.env to resolve TypeScript errors, aligning with the project's established pattern for environment variable access.
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// FIX: Switched from import.meta.env to process.env to resolve TypeScript errors.
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
