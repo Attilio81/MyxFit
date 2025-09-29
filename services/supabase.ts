@@ -1,15 +1,15 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// FIX: Switched from import.meta.env to process.env to resolve TypeScript errors.
-// FIX: Changed variable names to match README.md for consistency.
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+// In a Vite project, environment variables are exposed on the client via `import.meta.env`.
+// To be exposed, they MUST be prefixed with `VITE_`.
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
     "Supabase URL and anonymous key are required. " +
-    "Make sure to set SUPABASE_URL and SUPABASE_ANON_KEY " +
+    "Make sure to set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY " +
     "environment variables in Vercel."
   );
 }

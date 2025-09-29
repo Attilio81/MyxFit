@@ -42,13 +42,15 @@ Questa è un'applicazione web completa progettata per aiutare gli atleti di Cros
     - Vai su "Project Settings" > "API" per trovare il tuo URL e la `anon key`.
 
 3.  **Configura le Variabili d'Ambiente**:
-    Per far funzionare l'applicazione, è necessario configurare alcune variabili d'ambiente nella tua piattaforma di hosting (come Vercel, Netlify, ecc.). Questo garantisce che le chiavi segrete non siano esposte nel codice.
+    Per far funzionare l'applicazione, è necessario configurare alcune variabili d'ambiente nella tua piattaforma di hosting (come Vercel, Netlify, ecc.).
 
-    L'applicazione è configurata per leggere le seguenti variabili d'ambiente. È fondamentale che tu imposti le variabili con i nomi esatti elencati di seguito nella tua piattaforma di hosting (ad esempio, Vercel).
+    **Importante**: Poiché questo progetto utilizza Vite come build tool, tutte le variabili d'ambiente che devono essere accessibili nel browser **devono** iniziare con il prefisso `VITE_`.
 
-    - `SUPABASE_URL`: L'URL del tuo progetto Supabase. Lo trovi nelle impostazioni API del tuo progetto.
-    - `SUPABASE_ANON_KEY`: La chiave pubblica (anon key) del tuo progetto Supabase. Anche questa si trova nelle impostazioni API.
-    - `API_KEY`: La tua chiave API per Google Gemini, necessaria per l'assistente AI. Puoi ottenerla da [Google AI Studio](https://aistudio.google.com/).
+    Configura le seguenti variabili nel pannello di controllo del tuo servizio di hosting:
+
+    - `VITE_SUPABASE_URL`: L'URL del tuo progetto Supabase. Lo trovi nelle impostazioni API del tuo progetto.
+    - `VITE_SUPABASE_ANON_KEY`: La chiave pubblica (anon key) del tuo progetto Supabase. Anche questa si trova nelle impostazioni API.
+    - `VITE_API_KEY`: La tua chiave API per Google Gemini, necessaria per l'assistente AI. Puoi ottenerla da [Google AI Studio](https://aistudio.google.com/).
 
     Assicurati di impostare correttamente queste variabili nel pannello di controllo del tuo servizio di hosting.
 

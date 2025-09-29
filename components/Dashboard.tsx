@@ -45,7 +45,7 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
   const chatRef = useRef<Chat | null>(null);
   const [isAiAvailable, setIsAiAvailable] = useState(false);
   
-  const geminiApiKey = process.env.API_KEY;
+  const geminiApiKey = import.meta.env.VITE_API_KEY;
 
 
   const fetchData = useCallback(async () => {
@@ -80,7 +80,8 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
 
   // Initialize AI Chat
   useEffect(() => {
-    // FIX: Switched from import.meta.env to process.env to fix TypeScript errors and adhere to coding guidelines.
+    // In a Vite project, environment variables are exposed on the client via `import.meta.env`.
+    // To be exposed, they MUST be prefixed with `VITE_`.
     if (!geminiApiKey) {
       console.warn("Gemini API key not found. Chatbot will be disabled.");
       setIsAiAvailable(false);
