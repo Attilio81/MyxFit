@@ -1,10 +1,8 @@
-// FIX: Add triple-slash directive to provide types for Vite's `import.meta.env`.
-/// <reference types="vite/client" />
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { GoogleGenAI } from '@google/genai';
-import type { Chat } from '@google/genai';
+import type { Chat, FunctionCall, FunctionDeclaration, GenerateContentResponse, Type } from '@google/genai';
 
 import AddMovementModal from './AddMovementModal';
 import AddWODScoreModal from './AddWODScoreModal';
@@ -22,6 +20,33 @@ import type { Movement, PersonalRecord, WODRecord, ChatMessage } from '../types'
 
 type View = 'prs' | 'calculator' | 'add' | 'wods';
 type PRPageState = 'list' | 'history';
+
+const addPrToolDeclaration: FunctionDeclaration = {
+    name: 'addPersonalRecord',
+    description: 'Adds a new personal record for a specific movement.',
+    parameters: {
+      type: 'OBJECT' as Type.OBJECT,
+      properties: {
+        movementName: {
+          type: 'STRING' as Type.STRING,
+          description: 'The name of the movement, e.g., "Back Squat" or "Deadlift".',
+        },
+        value: {
+          type: 'STRING' as Type.STRING,
+          description: 'The result achieved, e.g., "150kg" or "5:21".',
+        },
+        date: {
+            type: 'STRING' as Type.STRING,
+            description: 'The date the PR was achieved, in YYYY-MM-DD format. Defaults to today if not provided.',
+        },
+        notes: {
+          type: 'STRING' as Type.STRING,
+          description: 'Any additional notes about the record.',
+        },
+      },
+      required: ['movementName', 'value'],
+    },
+};
 
 const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ session, onLogout }) => {
   const [movements, setMovements] = useState<Movement[]>([]);
@@ -47,7 +72,8 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
   const chatRef = useRef<Chat | null>(null);
   const [isAiAvailable, setIsAiAvailable] = useState(false);
   
-  const geminiApiKey = import.meta.env.VITE_API_KEY;
+  // FIX: Use process.env.API_KEY for the Gemini API key as per guidelines and to fix TypeScript errors.
+  const geminiApiKey = process.env.API_KEY;
 
 
   const fetchData = useCallback(async () => {
@@ -82,8 +108,6 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
 
   // Initialize AI Chat
   useEffect(() => {
-    // In a Vite project, environment variables are exposed on the client via `import.meta.env`.
-    // To be exposed, they MUST be prefixed with `VITE_`.
     if (!geminiApiKey) {
       console.warn("Gemini API key not found. Chatbot will be disabled.");
       setIsAiAvailable(false);
@@ -122,6 +146,7 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
                 model: 'gemini-2.5-flash',
                 config: {
                     systemInstruction,
+                    tools: [{ functionDeclarations: [addPrToolDeclaration] }],
                 },
             });
 
@@ -136,14 +161,11 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
     };
     
     // Initialize only when there's data, or if the data changes.
-    if ((records.length > 0 || wodRecords.length > 0) && !chatRef.current) {
-        initializeChat();
-    } else if (chatRef.current) {
-        // If data updates, re-initialize to get latest context
+    if ((records.length > 0 || wodRecords.length > 0) && isAiAvailable) {
         initializeChat();
     }
 
-  }, [records, wodRecords, geminiApiKey]);
+  }, [records, wodRecords, geminiApiKey, isAiAvailable]);
 
   const latestRecords = useMemo(() => {
     const recordMap = new Map<number, PersonalRecord>();
@@ -197,18 +219,54 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
     setIsChatLoading(true);
 
     try {
-      const response = await chatRef.current.sendMessageStream({ message });
-      let currentResponse = '';
+      const responseStream = await chatRef.current.sendMessageStream({ message });
+      let currentResponseText = '';
+      let toolCalls: FunctionCall[] | undefined;
+      
       setChatMessages(prev => [...prev, { role: 'model', text: '' }]);
 
-      for await (const chunk of response) {
-        currentResponse += chunk.text;
-        setChatMessages(prev => {
-          const newMessages = [...prev];
-          newMessages[newMessages.length - 1].text = currentResponse;
-          return newMessages;
-        });
+      for await (const chunk of responseStream) {
+        if (chunk.text) {
+          currentResponseText += chunk.text;
+          setChatMessages(prev => {
+            const newMessages = [...prev];
+            newMessages[newMessages.length - 1].text = currentResponseText;
+            return newMessages;
+          });
+        }
+        if (chunk.functionCalls) {
+            toolCalls = chunk.functionCalls;
+        }
       }
+
+      if (toolCalls && toolCalls.length > 0) {
+        const toolCall = toolCalls[0];
+        if (toolCall.name === 'addPersonalRecord') {
+            const args = toolCall.args;
+            const confirmationMessage = `I'm ready to add this PR:
+- **Movement:** ${args.movementName}
+- **Value:** ${args.value}
+- **Date:** ${args.date || 'Today'}
+- **Notes:** ${args.notes || 'None'}
+
+Shall I proceed?`;
+            
+            setChatMessages(prev => {
+                const newMessages = [...prev];
+                // Replace the last message (which might have been partially streamed) with the confirmation
+                newMessages[newMessages.length - 1] = {
+                    role: 'model',
+                    text: '', // No text, just the confirmation UI
+                    pendingToolConfirmation: {
+                        toolCall,
+                        message: confirmationMessage
+                    }
+                };
+                return newMessages;
+            });
+        }
+      }
+
     } catch (e) {
       console.error("Error sending message to AI:", e);
       setChatMessages(prev => [...prev, { role: 'model', text: 'Sorry, I encountered an error. Please try again.' }]);
@@ -216,6 +274,78 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
       setIsChatLoading(false);
     }
   };
+
+  const handleToolConfirmation = async (confirmed: boolean, toolCall: FunctionCall) => {
+    setChatMessages(prev => prev.filter(m => !m.pendingToolConfirmation));
+
+    if (!confirmed) {
+        setChatMessages(prev => [...prev, { role: 'model', text: "Okay, I've cancelled the request." }]);
+        return;
+    }
+
+    setIsChatLoading(true);
+    setChatMessages(prev => [...prev, { role: 'model', text: 'Roger that! Saving your PR...' }]);
+
+    const args = toolCall.args;
+    // FIX: Cast `args.movementName` to string to resolve 'toLowerCase' on 'unknown' type error.
+    const movement = movements.find(m => m.name.toLowerCase() === (args.movementName as string)?.toLowerCase());
+
+    let functionResponsePayload;
+
+    if (!movement) {
+        setChatMessages(prev => {
+            const newMessages = [...prev];
+            // FIX: Cast `args.movementName` to string to allow it to be used in the error message.
+            newMessages[newMessages.length-1].text = `I couldn't find the movement "${args.movementName as string}". You can add new movements from the 'Add PR' tab.`;
+            return newMessages;
+        });
+        setIsChatLoading(false);
+        return; 
+    } else {
+        const { error: insertError } = await supabase.from('personal_records').insert({
+            user_id: session.user.id,
+            movement_id: movement.id,
+            value: args.value,
+            date: args.date || new Date().toISOString().split('T')[0],
+            notes: args.notes,
+        });
+
+        if (insertError) {
+             functionResponsePayload = { success: false, error: insertError.message };
+        } else {
+            await fetchData();
+            functionResponsePayload = { success: true, message: 'The PR was successfully saved.' };
+        }
+    }
+    
+    try {
+        // FIX: The argument to `sendMessageStream` must be an object with a `message` property.
+        const responseStream = await chatRef.current.sendMessageStream({ message: [ 
+            { functionResponse: { name: toolCall.name, response: functionResponsePayload } } 
+        ]});
+        let finalResponseText = '';
+        
+        for await (const chunk of responseStream) {
+            finalResponseText += chunk.text;
+            setChatMessages(prev => {
+                const newMessages = [...prev];
+                newMessages[newMessages.length - 1].text = finalResponseText;
+                return newMessages;
+            });
+        }
+
+    } catch(e) {
+        console.error("Error sending tool response to AI:", e);
+        setChatMessages(prev => {
+            const newMessages = [...prev];
+            newMessages[newMessages.length - 1].text = "I've saved your PR, but had a little trouble getting a final response from the AI.";
+            return newMessages;
+        });
+    } finally {
+        setIsChatLoading(false);
+    }
+  };
+
 
   const renderContent = () => {
     switch (currentView) {
@@ -289,6 +419,7 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
         onClose={() => setIsChatbotOpen(false)}
         messages={chatMessages}
         onSendMessage={handleSendMessage}
+        onToolConfirm={handleToolConfirmation}
         isLoading={isChatLoading}
         isAvailable={isAiAvailable}
       />

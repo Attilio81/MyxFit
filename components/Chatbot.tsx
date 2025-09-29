@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import type { FunctionCall } from '@google/genai';
 import { XMarkIcon, ChatBubbleOvalLeftEllipsisIcon } from './common/Icons';
 import type { ChatMessage } from '../types';
 
@@ -7,6 +8,7 @@ interface ChatbotProps {
   onClose: () => void;
   messages: ChatMessage[];
   onSendMessage: (message: string) => void;
+  onToolConfirm: (confirmed: boolean, toolCall: FunctionCall) => void;
   isLoading: boolean;
   isAvailable: boolean;
 }
@@ -50,7 +52,7 @@ const FormattedMessage: React.FC<{ text: string }> = ({ text }) => {
 };
 
 
-const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, messages, onSendMessage, isLoading, isAvailable }) => {
+const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, messages, onSendMessage, onToolConfirm, isLoading, isAvailable }) => {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -101,17 +103,32 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, messages, onSendMess
                     : 'bg-gray-700 text-dark-text rounded-bl-lg'
                 }`}
               >
-                {msg.role === 'user' ? (
-                   <p className="text-sm">{msg.text}</p>
-                ) : (
-                    <div className="text-sm">
-                        <FormattedMessage text={msg.text} />
-                    </div>
-                )}
+                 <div className="text-sm">
+                    {msg.text && <FormattedMessage text={msg.text} />}
+                    {msg.pendingToolConfirmation && (
+                        <div>
+                            <FormattedMessage text={msg.pendingToolConfirmation.message} />
+                            <div className="flex gap-2 mt-3">
+                                <button 
+                                    onClick={() => onToolConfirm(true, msg.pendingToolConfirmation!.toolCall)}
+                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg text-xs transition"
+                                >
+                                    Confirm
+                                </button>
+                                <button 
+                                     onClick={() => onToolConfirm(false, msg.pendingToolConfirmation!.toolCall)}
+                                    className="flex-1 bg-dark-border hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg text-xs transition"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
               </div>
             </div>
           ))}
-          {isLoading && messages[messages.length - 1]?.role === 'user' && (
+          {isLoading && (
             <div className="flex justify-start">
                 <div className="max-w-xs md:max-w-md p-3 rounded-2xl bg-gray-700 text-dark-text rounded-bl-lg">
                     <div className="flex items-center space-x-2">

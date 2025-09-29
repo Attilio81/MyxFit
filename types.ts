@@ -1,3 +1,4 @@
+import type { FunctionCall } from '@google/genai';
 
 export interface Movement {
   id: number;
@@ -36,7 +37,13 @@ export interface WODRecord {
     created_at: string;
 }
 
+export interface PendingToolConfirmation {
+  toolCall: FunctionCall;
+  message: string;
+}
+
 export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
+  pendingToolConfirmation?: PendingToolConfirmation;
 }

@@ -1,6 +1,6 @@
 # CrossFit PR Tracker
 
-Questa è un'applicazione web completa progettata per aiutare gli atleti di CrossFit a monitorare i loro progressi, registrare i record personali (PR), consultare i WOD (Workout of the Day) di riferimento e utilizzare strumenti utili come un calcolatore di percentuali. L'applicazione include anche un assistente AI integrato per fornire analisi e motivazione.
+Questa è un'applicazione web completa progettata per aiutare gli atleti di CrossFit a monitorare i loro progressi, registrare i record personali (PR), consultare i WOD (Workout of the Day) di riferimento e utilizzare strumenti utili come un calcolatore di percentuali. L'applicazione include anche un assistente AI integrato per fornire analisi, motivazione e interagire con l'app.
 
 ## ✨ Funzionalità Principali
 
@@ -12,7 +12,7 @@ Questa è un'applicazione web completa progettata per aiutare gli atleti di Cros
 - **Benchmark WODs**: Una sezione dedicata ai più famosi WOD di CrossFit (come "Fran", "Murph", "Cindy", ecc.). Per ogni WOD è possibile visualizzare la descrizione e registrare il proprio punteggio.
 - **Storico Punteggi WOD**: Tutti i punteggi dei WOD vengono salvati e mostrati in una lista dedicata.
 - **Calcolatore di Percentuali**: Uno strumento per calcolare rapidamente le percentuali di carico basandosi sui propri massimali registrati, utile per la programmazione degli allenamenti.
-- **Assistente AI (Coach Virtuale)**: Un chatbot basato sull'API di Google Gemini che ha accesso ai dati di performance dell'utente. È possibile porre domande come "Quali sono i miei punti deboli?" o "Mostrami i miei progressi nel Deadlift" per ricevere risposte intelligenti e motivazionali.
+- **Assistente AI (Coach Virtuale Interattivo)**: Un chatbot basato sull'API di Google Gemini che non solo analizza i tuoi dati di performance, ma ti permette anche di **interagire con l'app usando il linguaggio naturale**. Puoi chiedere di registrare un nuovo PR (es. "Oggi ho fatto 100kg di panca") e l'assistente ti guiderà nel processo, chiedendo conferma prima di salvare i dati.
 - **Design Moderno e Responsivo**: Interfaccia utente pulita, scura e completamente responsiva, costruita con Tailwind CSS per un'esperienza ottimale su desktop e mobile.
 
 ## 🚀 Tecnologie Utilizzate
@@ -26,7 +26,7 @@ Questa è un'applicazione web completa progettata per aiutare gli atleti di Cros
   - **Supabase**: Utilizzato come backend-as-a-service per l'autenticazione, il database PostgreSQL e le API.
 
 - **Intelligenza Artificiale**:
-  - **Google Gemini API (`@google/genai`)**: Per alimentare le funzionalità del chatbot e dell'assistente AI.
+  - **Google Gemini API (`@google/genai`)**: Per alimentare le funzionalità del chatbot, sfruttando la *Function Calling* per un'interazione avanzata con l'applicazione.
 
 ## 🛠️ Installazione e Avvio
 
