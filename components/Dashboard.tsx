@@ -1,3 +1,13 @@
+// FIX: Replaced the non-functional vite/client type reference with local type definitions
+// for import.meta.env. This resolves TypeScript errors when the project's tsconfig.json
+// is not correctly configured to include Vite's client types.
+interface ImportMetaEnv {
+  readonly VITE_API_KEY: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
 
 import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { supabase } from '../services/supabase';
@@ -76,7 +86,7 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
   const chatInitialized = useRef(false);
   const [isAiAvailable, setIsAiAvailable] = useState(false);
   
-  const geminiApiKey = process.env.VITE_API_KEY;
+  const geminiApiKey = import.meta.env.VITE_API_KEY;
 
 
   const fetchData = useCallback(async (options: { keepLoading?: boolean } = {}) => {
