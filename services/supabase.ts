@@ -1,14 +1,17 @@
 
-// FIX: Replaced the non-functional vite/client type reference with local type definitions
-// for import.meta.env. This resolves TypeScript errors when the project's tsconfig.json
-// is not correctly configured to include Vite's client types.
-interface ImportMetaEnv {
-  readonly VITE_SUPABASE_URL: string;
-  readonly VITE_SUPABASE_ANON_KEY: string;
-}
+// FIX: Corrected local type definitions for import.meta.env by using `declare global`
+// to properly augment TypeScript's global `ImportMeta` interface. This resolves
+// TypeScript errors when the project's tsconfig.json is not correctly configured
+// to include Vite's client types.
+declare global {
+  interface ImportMetaEnv {
+    readonly VITE_SUPABASE_URL: string;
+    readonly VITE_SUPABASE_ANON_KEY: string;
+  }
 
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
+  interface ImportMeta {
+    readonly env: ImportMetaEnv;
+  }
 }
 
 import { createClient } from '@supabase/supabase-js';

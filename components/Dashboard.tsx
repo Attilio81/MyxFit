@@ -1,12 +1,16 @@
-// FIX: Replaced the non-functional vite/client type reference with local type definitions
-// for import.meta.env. This resolves TypeScript errors when the project's tsconfig.json
-// is not correctly configured to include Vite's client types.
-interface ImportMetaEnv {
-  readonly VITE_API_KEY: string;
-}
 
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
+// FIX: Corrected local type definitions for import.meta.env by using `declare global`
+// to properly augment TypeScript's global `ImportMeta` interface. This resolves
+// TypeScript errors when the project's tsconfig.json is not correctly configured
+// to include Vite's client types.
+declare global {
+  interface ImportMetaEnv {
+    readonly VITE_API_KEY: string;
+  }
+
+  interface ImportMeta {
+    readonly env: ImportMetaEnv;
+  }
 }
 
 import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
@@ -78,6 +82,9 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
   const [isAddWODScoreModalOpen, setIsAddWODScoreModalOpen] = useState(false);
   const [selectedWOD, setSelectedWOD] = useState<string | null>(null);
 
+  // Search state
+  const [prSearchTerm, setPrSearchTerm] = useState('');
+
   // Chatbot states
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -122,6 +129,13 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Clear search term when navigating away from PRs view
+  useEffect(() => {
+    if (currentView !== 'prs') {
+        setPrSearchTerm('');
+    }
+  }, [currentView]);
 
   // Initialize AI Chat ONCE
   useEffect(() => {
@@ -201,6 +215,15 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
         return nameA.localeCompare(nameB);
     });
   }, [records]);
+
+  const filteredLatestRecords = useMemo(() => {
+    if (!prSearchTerm) {
+        return latestRecords;
+    }
+    return latestRecords.filter(record =>
+        record.movements?.name.toLowerCase().includes(prSearchTerm.toLowerCase())
+    );
+  }, [latestRecords, prSearchTerm]);
 
   const handleMovementAdded = useCallback(() => {
     setIsAddMovementModalOpen(false);
@@ -379,7 +402,13 @@ Shall I proceed?`;
     switch (currentView) {
       case 'prs':
         if (prPageState === 'list') {
-          return <LatestPRsList records={latestRecords} onSelectMovement={handleSelectMovement} loading={loading} />;
+          return <LatestPRsList 
+            records={filteredLatestRecords} 
+            onSelectMovement={handleSelectMovement} 
+            loading={loading}
+            searchTerm={prSearchTerm}
+            onSearchChange={setPrSearchTerm}
+          />;
         }
         if (prPageState === 'history' && selectedMovementId) {
           return <PRHistoryView 

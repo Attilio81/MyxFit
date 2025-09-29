@@ -1,10 +1,13 @@
 import React from 'react';
 import type { PersonalRecord } from '../types';
+import { MagnifyingGlassIcon } from './common/Icons';
 
 interface LatestPRsListProps {
   records: PersonalRecord[];
   onSelectMovement: (movementId: number) => void;
   loading: boolean;
+  searchTerm: string;
+  onSearchChange: (term: string) => void;
 }
 
 const formatDate = (dateString?: string | null) => {
@@ -21,7 +24,7 @@ const formatDate = (dateString?: string | null) => {
 };
 
 
-const LatestPRsList: React.FC<LatestPRsListProps> = ({ records, onSelectMovement, loading }) => {
+const LatestPRsList: React.FC<LatestPRsListProps> = ({ records, onSelectMovement, loading, searchTerm, onSearchChange }) => {
 
   if (loading) {
     return <div className="text-center py-10 text-dark-text-secondary">Loading your records...</div>;
@@ -30,7 +33,23 @@ const LatestPRsList: React.FC<LatestPRsListProps> = ({ records, onSelectMovement
   return (
     <div className="bg-dark-card p-4 sm:p-6 rounded-lg shadow-lg">
       <h2 className="text-xl font-bold mb-4">Latest Personal Records</h2>
-      {records.length === 0 ? (
+      
+      <div className="relative mb-4">
+        <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+          <MagnifyingGlassIcon className="w-5 h-5 text-dark-text-secondary" />
+        </span>
+        <input
+          type="text"
+          placeholder="Search movements..."
+          value={searchTerm}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-dark-border rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+        />
+      </div>
+
+      {records.length === 0 && searchTerm ? (
+        <p className="text-center py-8 text-dark-text-secondary">No movements found for "{searchTerm}".</p>
+      ) : records.length === 0 && !searchTerm ? (
         <p className="text-center py-8 text-dark-text-secondary">No records found. Add your first PR from the 'Add PR' tab!</p>
       ) : (
         <div className="space-y-3">
