@@ -171,14 +171,21 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
                 notes: w.notes
             }));
     
-            const systemInstruction = `You are a helpful and encouraging CrossFit coaching assistant. The user's personal records (PRs) and workout-of-the-day (WOD) scores are provided below in JSON format. Analyze this data to answer the user's questions. Always be positive and motivational in your responses. Keep answers concise.
-    
-            User's PR Data:
-            ${JSON.stringify(prData)}
-    
-            User's WOD Score Data:
-            ${JSON.stringify(wodData)}
-            `;
+            const systemInstruction = `You are a helpful and encouraging CrossFit coaching assistant. Use the information below to answer the user's questions about their performance and how to use the app. Always be positive and motivational. Keep answers concise.
+
+Application Functionality Guide:
+- **PRs Tab ('prs'):** Users can view their latest personal records for each movement. They can search for movements and click on any record to see a detailed history for that specific exercise.
+- **Calculator Tab ('calculator'):** This tool allows users to calculate weight percentages based on their saved, weight-based PRs. It's useful for planning training sessions.
+- **Add PR Tab ('add'):** This is where users can log new PRs. They can select an existing movement or add a new one if it's not in the list.
+- **WODs Tab ('wods'):** This section lists famous benchmark WODs (like Murph, Fran). Users can view WOD details, log their scores, and see a history of their completed WODs.
+- **Your Role:** In addition to answering questions, you can directly help the user by adding new PRs using the 'addPersonalRecord' function when they ask you to.
+
+User's PR Data:
+${JSON.stringify(prData)}
+
+User's WOD Score Data:
+${JSON.stringify(wodData)}
+`;
     
             chatRef.current = ai.chats.create({
                 model: 'gemini-2.5-flash',
