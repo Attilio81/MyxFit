@@ -93,6 +93,7 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
   const chatRef = useRef<Chat | null>(null);
   const chatInitialized = useRef(false);
   const [isAiAvailable, setIsAiAvailable] = useState(false);
+  const [isChatButtonVisible, setIsChatButtonVisible] = useState(true);
   
   const geminiApiKey = import.meta.env.VITE_API_KEY;
 
@@ -405,6 +406,16 @@ Shall I proceed?`;
         setIsChatLoading(false);
     }
   };
+  
+  const toggleChatButtonVisibility = () => {
+    setIsChatButtonVisible(prevState => {
+        const newState = !prevState;
+        if (!newState) { // If hiding the button, also close the chat window
+            setIsChatbotOpen(false);
+        }
+        return newState;
+    });
+  };
 
   const renderContent = () => {
     switch (currentView) {
@@ -454,12 +465,25 @@ Shall I proceed?`;
           <DumbbellIcon className="h-8 w-8 text-brand-primary"/>
           <h1 className="text-2xl font-bold">PR Tracker</h1>
         </div>
-        <button
-          onClick={onLogout}
-          className="bg-dark-card hover:bg-dark-border text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
-        >
-          Logout
-        </button>
+        <div className="flex items-center gap-2">
+            {isAiAvailable && (
+              <button
+                onClick={toggleChatButtonVisibility}
+                className={`p-2 rounded-lg transition duration-200 ${
+                  isChatButtonVisible ? 'bg-brand-secondary/80 hover:bg-brand-secondary' : 'bg-dark-card hover:bg-dark-border'
+                }`}
+                aria-label={isChatButtonVisible ? "Hide AI Assistant button" : "Show AI Assistant button"}
+              >
+                <ChatBubbleOvalLeftEllipsisIcon className="h-6 w-6 text-white"/>
+              </button>
+            )}
+            <button
+              onClick={onLogout}
+              className="bg-dark-card hover:bg-dark-border text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
+            >
+              Logout
+            </button>
+        </div>
       </header>
 
       <main className="flex-grow overflow-y-auto p-4 pb-24">
@@ -471,7 +495,7 @@ Shall I proceed?`;
 
       <BottomNav currentView={currentView} setCurrentView={setCurrentView} />
 
-      {isAiAvailable && (
+      {isAiAvailable && isChatButtonVisible && (
         <button
             onClick={() => setIsChatbotOpen(true)}
             className="fixed bottom-24 right-4 bg-brand-secondary hover:bg-orange-500 text-white rounded-full p-4 shadow-lg transition-transform hover:scale-110 z-30"

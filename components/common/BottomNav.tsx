@@ -26,15 +26,14 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, setCurrentView }) =>
               <button
                 key={view}
                 onClick={() => setCurrentView(view)}
-                className={`flex flex-col items-center justify-center w-full pt-2 pb-1 text-xs sm:text-sm transition-colors duration-200 ${
+                className={`flex flex-col items-center justify-center w-full py-3 transition-colors duration-200 ${
                   isActive ? 'text-brand-primary' : 'text-dark-text-secondary hover:text-white'
                 }`}
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={label}
               >
-                <Icon className="w-6 h-6 mb-1" />
-                <span>{label}</span>
-                {isActive && <div className="w-8 h-1 bg-brand-primary rounded-full mt-1"></div>}
+                <Icon className="w-7 h-7" />
+                {isActive && <div className="w-8 h-1 bg-brand-primary rounded-full mt-2"></div>}
               </button>
             );
           })}
