@@ -10,8 +10,8 @@ interface BottomNavProps {
 
 const navItems = [
   { view: 'prs' as View, label: 'PRs', icon: ClipboardListIcon },
-  { view: 'calculator' as View, label: 'Calculator', icon: CalculatorIcon },
   { view: 'add' as View, label: 'Add PR', icon: PlusCircleIcon },
+  { view: 'calculator' as View, label: 'Calculator', icon: CalculatorIcon },
   { view: 'wods' as View, label: 'WODs', icon: BookOpenIcon },
 ];
 
