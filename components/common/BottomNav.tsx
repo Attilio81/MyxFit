@@ -1,5 +1,5 @@
 import React from 'react';
-import { DumbbellIcon, CalculatorIcon, PlusCircleIcon, BookOpenIcon } from './Icons';
+import { CalculatorIcon, PlusCircleIcon, BookOpenIcon, ClipboardListIcon } from './Icons';
 
 type View = 'prs' | 'calculator' | 'add' | 'wods';
 
@@ -9,7 +9,7 @@ interface BottomNavProps {
 }
 
 const navItems = [
-  { view: 'prs' as View, label: 'PRs', icon: DumbbellIcon },
+  { view: 'prs' as View, label: 'PRs', icon: ClipboardListIcon },
   { view: 'calculator' as View, label: 'Calculator', icon: CalculatorIcon },
   { view: 'add' as View, label: 'Add PR', icon: PlusCircleIcon },
   { view: 'wods' as View, label: 'WODs', icon: BookOpenIcon },
