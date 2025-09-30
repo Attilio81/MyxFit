@@ -8,7 +8,7 @@ interface PercentageCalculatorProps {
 
 const PercentageCalculator: React.FC<PercentageCalculatorProps> = ({ records }) => {
   const [selectedRecordId, setSelectedRecordId] = useState('');
-  const [percentage, setPercentage] = useState(80);
+  const [percentage, setPercentage] = useState('80');
 
   const weightBasedRecords = useMemo(() => {
     return records.filter(r => /\d/.test(r.value) && !/:/.test(r.value)); // Simple filter for records with numbers and no colons
@@ -19,13 +19,14 @@ const PercentageCalculator: React.FC<PercentageCalculatorProps> = ({ records }) 
   }, [selectedRecordId, weightBasedRecords]);
 
   const calculatedValue = useMemo(() => {
-    if (!selectedRecord || isNaN(percentage)) {
+    const numericPercentage = parseFloat(percentage);
+    if (!selectedRecord || isNaN(numericPercentage)) {
       return null;
     }
     const baseValue = parseFloat(selectedRecord.value);
     if (isNaN(baseValue)) return null;
 
-    const result = (baseValue * percentage) / 100;
+    const result = (baseValue * numericPercentage) / 100;
     const unit = selectedRecord.value.replace(/[\d.,\s]/g, ''); // Extract unit like kg, lbs
     
     return `${result.toFixed(2)} ${unit}`;
@@ -57,7 +58,7 @@ const PercentageCalculator: React.FC<PercentageCalculatorProps> = ({ records }) 
             id="percentage"
             type="number"
             value={percentage}
-            onChange={(e) => setPercentage(parseFloat(e.target.value) || 0)}
+            onChange={(e) => setPercentage(e.target.value)}
             className="w-full px-3 py-2 bg-gray-700 border border-dark-border rounded-md text-white focus:outline-none focus:ring-2 focus:ring-brand-primary"
             placeholder="e.g., 80"
           />
