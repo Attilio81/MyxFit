@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { ArrowLeftIcon, TrashIcon } from './common/Icons';
+import React, { useMemo, useState } from 'react';
+import { ArrowLeftIcon, TrashIcon, MagnifyingGlassIcon } from './common/Icons';
 import type { PersonalRecord, Movement } from '../types';
 
 interface PRHistoryViewProps {
@@ -24,6 +24,8 @@ const formatDate = (dateString?: string | null) => {
 };
 
 const PRHistoryView: React.FC<PRHistoryViewProps> = ({ movementId, allRecords, movements, onDelete, onBack }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+
   const { movement, history } = useMemo(() => {
     const movement = movements.find(m => m.id === movementId);
     const history = allRecords
@@ -37,6 +39,18 @@ const PRHistoryView: React.FC<PRHistoryViewProps> = ({ movementId, allRecords, m
       });
     return { movement, history };
   }, [movementId, allRecords, movements]);
+
+  const filteredHistory = useMemo(() => {
+    if (!searchTerm) {
+      return history;
+    }
+    return history.filter(record => {
+      const term = searchTerm.toLowerCase();
+      const valueMatch = record.value.toLowerCase().includes(term);
+      const notesMatch = record.notes?.toLowerCase().includes(term) || false;
+      return valueMatch || notesMatch;
+    });
+  }, [history, searchTerm]);
   
   const handleDelete = (id: number) => {
     if (window.confirm('Are you sure you want to delete this record?')) {
@@ -62,11 +76,30 @@ const PRHistoryView: React.FC<PRHistoryViewProps> = ({ movementId, allRecords, m
         <h2 className="text-2xl font-bold">{movement.name} - History</h2>
       </div>
 
-      {history.length === 0 ? (
-        <p className="text-center py-8 text-dark-text-secondary">No history found for this movement.</p>
+      <div className="relative mb-6">
+        <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+          <MagnifyingGlassIcon className="w-5 h-5 text-dark-text-secondary" />
+        </span>
+        <input
+          type="text"
+          placeholder="Search in history (e.g., by value or notes)..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-dark-border rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+          aria-label={`Search history for ${movement.name}`}
+        />
+      </div>
+
+      {filteredHistory.length === 0 ? (
+        <p className="text-center py-8 text-dark-text-secondary">
+          {searchTerm 
+            ? `No records found matching "${searchTerm}".`
+            : 'No history found for this movement.'
+          }
+        </p>
       ) : (
         <div className="space-y-4">
-          {history.map(record => (
+          {filteredHistory.map(record => (
             <div key={record.id} className="bg-gray-700 p-4 rounded-lg flex justify-between items-start gap-4">
               <div className="flex-grow">
                 <div className="flex items-baseline gap-3 flex-wrap">
