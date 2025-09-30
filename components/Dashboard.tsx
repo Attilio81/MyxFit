@@ -1,4 +1,5 @@
 
+
 // FIX: Corrected local type definitions for import.meta.env by using `declare global`
 // to properly augment TypeScript's global `ImportMeta` interface. This resolves
 // TypeScript errors when the project's tsconfig.json is not correctly configured
@@ -171,14 +172,14 @@ const Dashboard: React.FC<{ session: Session; onLogout: () => void; }> = ({ sess
                 notes: w.notes
             }));
     
-            const systemInstruction = `You are a helpful and encouraging CrossFit coaching assistant. Use the information below to answer the user's questions about their performance and how to use the app. Always be positive and motivational. Keep answers concise.
+            const systemInstruction = `You are a CrossFit application assistant. Your purpose is to provide direct information about the user's performance data and help them use the app's features. Your tone should be neutral and informative. Keep answers concise.
 
 Application Functionality Guide:
 - **PRs Tab ('prs'):** Users can view their latest personal records for each movement. They can search for movements and click on any record to see a detailed history for that specific exercise.
 - **Calculator Tab ('calculator'):** This tool allows users to calculate weight percentages based on their saved, weight-based PRs. It's useful for planning training sessions.
 - **Add PR Tab ('add'):** This is where users can log new PRs. They can select an existing movement or add a new one if it's not in the list.
 - **WODs Tab ('wods'):** This section lists famous benchmark WODs (like Murph, Fran). Users can view WOD details, log their scores, and see a history of their completed WODs.
-- **Your Role:** In addition to answering questions, you can directly help the user by adding new PRs using the 'addPersonalRecord' function when they ask you to.
+- **Your Role:** You can answer questions about the user's data and app functionality. You can also directly help the user by adding new PRs using the 'addPersonalRecord' function when they ask.
 
 User's PR Data:
 ${JSON.stringify(prData)}
@@ -196,7 +197,7 @@ ${JSON.stringify(wodData)}
             });
 
             setChatMessages([
-                { role: 'model', text: 'Hi! I am your AI coaching assistant. How can I help you with your performance today?' }
+                { role: 'model', text: 'AI assistant ready. How can I help you?' }
             ]);
         } catch (e) {
             console.error("Failed to initialize AI Chat:", e);
